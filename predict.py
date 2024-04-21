@@ -28,7 +28,7 @@ def get_args():
     return args
 
 def align_to_four(img):
-    print ('before alignment, row = %d, col = %d'%(img.shape[0], img.shape[1]))
+    #print ('before alignment, row = %d, col = %d'%(img.shape[0], img.shape[1]))
     #align to four
     a_row = int(img.shape[0]/4)*4
     a_col = int(img.shape[1]/4)*4
@@ -95,14 +95,14 @@ if __name__ == '__main__':
             cv2.imwrite(args.output_dir + img_name + '.jpg', result)
 
     elif args.mode == 'test':
-        for r in range(1):  # Run test mode 10 times
+        for r in range(5):  # Run test mode 10 times
           input_list = sorted(os.listdir(args.input_dir))
           gt_list = sorted(os.listdir(args.gt_dir))
           num = len(input_list)
           cumulative_psnr = 0
           cumulative_ssim = 0
           for i in range(num):
-            print ('Processing image: %s'%(input_list[i]))
+            #print ('Processing image: %s'%(input_list[i]))
             img = cv2.imread(args.input_dir + input_list[i])
             gt = cv2.imread(args.gt_dir + gt_list[i])
             img = align_to_four(img)
@@ -135,24 +135,18 @@ if __name__ == '__main__':
           # Calculate average SSIM and PSNR
           avg_ssim = np.mean(avg_ssim_list)
           avg_psnr = np.mean(avg_psnr_list)
-          print("Average SSIM for run #", r+1,":", avg_ssim)
-          print("Average PSNR for run #", r+1,":", avg_psnr)
 
 
 
 
         # Display results
-        print("Average SSIM across 10 runs:", avg_ssim)
-        print("Average PSNR across 10 runs:", avg_psnr)
+        print("Average SSIM:", avg_ssim)
+        print("Average PSNR:", avg_psnr)
         highest_ssim_img = cv2.imread(args.input_dir + highest_ssim['filename'])
         lowest_ssim_img = cv2.imread(args.input_dir + lowest_ssim['filename'])
         highest_psnr_img = cv2.imread(args.input_dir + highest_psnr['filename'])
         lowest_psnr_img = cv2.imread(args.input_dir + lowest_psnr['filename'])
         display_four_images(highest_psnr_img, lowest_psnr_img, highest_ssim_img, lowest_ssim_img, highest_psnr['psnr'], lowest_psnr['psnr'], highest_ssim['ssim'], lowest_ssim['ssim'])
-        #print("Image with highest SSIM:", highest_ssim['filename'], "SSIM:", highest_ssim['ssim'])
-        #print("Image with lowest SSIM:", lowest_ssim['filename'], "SSIM:", lowest_ssim['ssim'])
-        #print("Image with highest PSNR:", highest_psnr['filename'], "PSNR:", highest_psnr['psnr'])
-        #print("Image with lowest PSNR:", lowest_psnr['filename'], "PSNR:", lowest_psnr['psnr'])
 
 
     else:
