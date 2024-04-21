@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torchvision
 #Tools lib
 import numpy as np
+import matplotlib.pyplot as plt
 import cv2
 import random
 import time
@@ -27,13 +28,30 @@ def get_args():
     return args
 
 def align_to_four(img):
-    #print ('before alignment, row = %d, col = %d'%(img.shape[0], img.shape[1]))
+    print ('before alignment, row = %d, col = %d'%(img.shape[0], img.shape[1]))
     #align to four
     a_row = int(img.shape[0]/4)*4
     a_col = int(img.shape[1]/4)*4
     img = img[0:a_row, 0:a_col]
     #print ('after alignment, row = %d, col = %d'%(img.shape[0], img.shape[1]))
     return img
+
+def display_four_images(imgHPSNR, imgLPSNR, imgHSSIM, imgLSSIM, hpsnr, lpsnr, hssim, lssim):
+    fig, axes = plt.subplots(2, 2, figsize=(10, 10))
+    axes[0, 0].imshow(imgHPSNR)
+    axes[0, 0].set_title('Highest PSNR: ' + str(hpsnr))
+    axes[0, 0].axis('off')
+    axes[0, 1].imshow(imgLPSNR)
+    axes[0, 1].set_title('Lowest PSNR: ' + str(lpsnr))
+    axes[0, 1].axis('off')
+    axes[1, 0].imshow(imgHSSIM)
+    axes[1, 0].set_title('Highest SSIM: ' + str(hssim))
+    axes[1, 0].axis('off')
+    axes[1, 1].imshow(imgLSSIM)
+    axes[1, 1].set_title('Lowest SSIM: ' + str(lssim))
+    axes[1, 1].axis('off')
+    plt.tight_layout()
+    plt.show()
 
 
 def predict(image):
@@ -55,6 +73,12 @@ def predict(image):
 
 if __name__ == '__main__':
     args = get_args()
+    avg_ssim_list = []
+    avg_psnr_list = []
+    highest_ssim = {'filename': None, 'ssim': 0}
+    lowest_ssim = {'filename': None, 'ssim': np.inf}
+    highest_psnr = {'filename': None, 'psnr': 0}
+    lowest_psnr = {'filename': None, 'psnr': np.inf}
 
     model = Generator().cuda()
     model.load_state_dict(torch.load('./weights/gen.pkl'))
@@ -71,25 +95,65 @@ if __name__ == '__main__':
             cv2.imwrite(args.output_dir + img_name + '.jpg', result)
 
     elif args.mode == 'test':
-        input_list = sorted(os.listdir(args.input_dir))
-        gt_list = sorted(os.listdir(args.gt_dir))
-        num = len(input_list)
-        cumulative_psnr = 0
-        cumulative_ssim = 0
-        for i in range(num):
+        for r in range(1):  # Run test mode 10 times
+          input_list = sorted(os.listdir(args.input_dir))
+          gt_list = sorted(os.listdir(args.gt_dir))
+          num = len(input_list)
+          cumulative_psnr = 0
+          cumulative_ssim = 0
+          for i in range(num):
             print ('Processing image: %s'%(input_list[i]))
             img = cv2.imread(args.input_dir + input_list[i])
             gt = cv2.imread(args.gt_dir + gt_list[i])
             img = align_to_four(img)
             gt = align_to_four(gt)
             result = predict(img)
-            result = np.array(result, dtype = 'uint8')
+            result = np.array(result, dtype='uint8')
             cur_psnr = calc_psnr(result, gt)
             cur_ssim = calc_ssim(result, gt)
-            print('PSNR is %.4f and SSIM is %.4f'%(cur_psnr, cur_ssim))
+            #print('PSNR is %.4f and SSIM is %.4f'%(cur_psnr, cur_ssim))
             cumulative_psnr += cur_psnr
             cumulative_ssim += cur_ssim
-        print('In testing dataset, PSNR is %.4f and SSIM is %.4f'%(cumulative_psnr/num, cumulative_ssim/num))
+
+            # Update highest and lowest SSIM and PSNR images
+            if cur_ssim > highest_ssim['ssim']:
+              highest_ssim['filename'] = input_list[i]
+              highest_ssim['ssim'] = cur_ssim
+            if cur_ssim < lowest_ssim['ssim']:
+              lowest_ssim['filename'] = input_list[i]
+              lowest_ssim['ssim'] = cur_ssim
+            if cur_psnr > highest_psnr['psnr']:
+              highest_psnr['filename'] = input_list[i]
+              highest_psnr['psnr'] = cur_psnr
+            if cur_psnr < lowest_psnr['psnr']:
+              lowest_psnr['filename'] = input_list[i]
+              lowest_psnr['psnr'] = cur_psnr
+
+          avg_psnr_list.append(cumulative_psnr / num)
+          avg_ssim_list.append(cumulative_ssim / num)
+
+          # Calculate average SSIM and PSNR
+          avg_ssim = np.mean(avg_ssim_list)
+          avg_psnr = np.mean(avg_psnr_list)
+          print("Average SSIM for run #", r+1,":", avg_ssim)
+          print("Average PSNR for run #", r+1,":", avg_psnr)
+
+
+
+
+        # Display results
+        print("Average SSIM across 10 runs:", avg_ssim)
+        print("Average PSNR across 10 runs:", avg_psnr)
+        highest_ssim_img = cv2.imread(args.input_dir + highest_ssim['filename'])
+        lowest_ssim_img = cv2.imread(args.input_dir + lowest_ssim['filename'])
+        highest_psnr_img = cv2.imread(args.input_dir + highest_psnr['filename'])
+        lowest_psnr_img = cv2.imread(args.input_dir + lowest_psnr['filename'])
+        display_four_images(highest_psnr_img, lowest_psnr_img, highest_ssim_img, lowest_ssim_img, highest_psnr['psnr'], lowest_psnr['psnr'], highest_ssim['ssim'], lowest_ssim['ssim'])
+        #print("Image with highest SSIM:", highest_ssim['filename'], "SSIM:", highest_ssim['ssim'])
+        #print("Image with lowest SSIM:", lowest_ssim['filename'], "SSIM:", lowest_ssim['ssim'])
+        #print("Image with highest PSNR:", highest_psnr['filename'], "PSNR:", highest_psnr['psnr'])
+        #print("Image with lowest PSNR:", lowest_psnr['filename'], "PSNR:", lowest_psnr['psnr'])
+
 
     else:
         print ('Mode Invalid!')
