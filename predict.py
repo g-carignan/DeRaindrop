@@ -13,6 +13,7 @@ import random
 import time
 import os
 import argparse
+from PIL import Image
 #Models lib
 from models import *
 #Metrics lib
@@ -127,19 +128,18 @@ if __name__ == '__main__':
     model.load_state_dict(torch.load('./weights/gen.pkl'))
 
     if args.mode == 'demo':
-        input_list = sorted(os.listdir(args.input_dir))
-        num = len(input_list)
-        for i in range(num):
-            print ('Processing image: %s'%(input_list[i]))
-            img = cv2.imread(args.input_dir + input_list[i])
-            img = align_to_four(img)
-            #result = predict(img)
-            #img_name = input_list[i].split('.')[0]
-            #cv2.imwrite(args.output_dir + img_name + '.jpg', result)
-            attention_maps, result = predict_with_attention(img)
-            display_attention_and_result(img, attention_maps, result)
-            img_name = input_list[i].split('.')[0]
-            cv2.imwrite(args.output_dir + img_name + '.jpg', result)
+        print ('Processing image: %s'%(input_list[i]))
+        img = plt.imread(args.input_dir + input_list[i])
+        img = align_to_four(img)
+        #result = predict(img)
+        #img_name = input_list[i].split('.')[0]
+        #cv2.imwrite(args.output_dir + img_name + '.jpg', result)
+        attention_maps, result = predict_with_attention(img)
+        img_name = input_list[i].split('.')[0]
+        cv2.imwrite(args.output_dir + img_name + '.jpg', result)
+        img_result = plt.imread(args.output_dir + img_name + '.jpg')
+        img_result = cv2.cvtColor(img_result, cv2.COLOR_BGR2RGB)
+        display_attention_and_result(img, attention_maps, img_result)
 
     elif args.mode == 'test':
         for r in range(5):  # Run test mode 10 times
@@ -189,10 +189,10 @@ if __name__ == '__main__':
         # Display results
         print("Average SSIM:", avg_ssim)
         print("Average PSNR:", avg_psnr)
-        highest_ssim_img = cv2.imread(args.input_dir + highest_ssim['filename'])
-        lowest_ssim_img = cv2.imread(args.input_dir + lowest_ssim['filename'])
-        highest_psnr_img = cv2.imread(args.input_dir + highest_psnr['filename'])
-        lowest_psnr_img = cv2.imread(args.input_dir + lowest_psnr['filename'])
+        highest_ssim_img = plt.imread(args.input_dir + highest_ssim['filename'])
+        lowest_ssim_img = plt.imread(args.input_dir + lowest_ssim['filename'])
+        highest_psnr_img = plt.imread(args.input_dir + highest_psnr['filename'])
+        lowest_psnr_img = plt.imread(args.input_dir + lowest_psnr['filename'])
         display_four_images(highest_psnr_img, lowest_psnr_img, highest_ssim_img, lowest_ssim_img, highest_psnr['psnr'], lowest_psnr['psnr'], highest_ssim['ssim'], lowest_ssim['ssim'])
 
 
