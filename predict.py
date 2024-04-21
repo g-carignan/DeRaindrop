@@ -70,6 +70,49 @@ def predict(image):
     
     return out
 
+def predict_with_attention(image):
+    image = np.array(image, dtype='float32') / 255.
+    image = image.transpose((2, 0, 1))
+    image = image[np.newaxis, :, :, :]
+    image = torch.from_numpy(image)
+    image = Variable(image).cuda()
+
+    masks, frame1, frame2, out = model(image)  
+
+    masks = [mask[0, 0].cpu().detach().numpy() for mask in masks]
+
+    out = out.cpu().data
+    out = out.numpy()
+    out = out.transpose((0, 2, 3, 1))
+    out = out[0, :, :, :] * 255.
+
+    return masks, out
+
+def display_attention_and_result(img, attention_maps, result):
+    num_maps = len(attention_maps)
+    num_cols = num_maps + 1
+    fig, axes = plt.subplots(1, num_cols, figsize=(6 * num_cols, 6))
+
+    # Input image
+    axes[0].imshow(img)
+    axes[0].set_title('Input Image')
+    axes[0].axis('off')
+
+    # Attention maps
+    for i in range(num_maps):
+        axes[i+1].imshow(attention_maps[i], cmap='inferno', interpolation='nearest')
+        axes[i+1].set_title(f'Attention Map {i+1}')
+        axes[i+1].axis('off')
+
+    # Generated result
+    axes[-1].imshow(result)
+    axes[-1].set_title('Generated Result')
+    axes[-1].axis('off')
+
+    plt.tight_layout()
+    plt.show()
+
+
 
 if __name__ == '__main__':
     args = get_args()
@@ -90,7 +133,11 @@ if __name__ == '__main__':
             print ('Processing image: %s'%(input_list[i]))
             img = cv2.imread(args.input_dir + input_list[i])
             img = align_to_four(img)
-            result = predict(img)
+            #result = predict(img)
+            #img_name = input_list[i].split('.')[0]
+            #cv2.imwrite(args.output_dir + img_name + '.jpg', result)
+            attention_maps, result = predict_with_attention(img)
+            display_attention_and_result(img, attention_maps, result)
             img_name = input_list[i].split('.')[0]
             cv2.imwrite(args.output_dir + img_name + '.jpg', result)
 
