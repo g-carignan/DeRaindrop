@@ -128,18 +128,21 @@ if __name__ == '__main__':
     model.load_state_dict(torch.load('./weights/gen.pkl'))
 
     if args.mode == 'demo':
-        print ('Processing image: %s'%(input_list[i]))
-        img = plt.imread(args.input_dir + input_list[i])
-        img = align_to_four(img)
-        #result = predict(img)
-        #img_name = input_list[i].split('.')[0]
-        #cv2.imwrite(args.output_dir + img_name + '.jpg', result)
-        attention_maps, result = predict_with_attention(img)
-        img_name = input_list[i].split('.')[0]
-        cv2.imwrite(args.output_dir + img_name + '.jpg', result)
-        img_result = plt.imread(args.output_dir + img_name + '.jpg')
-        img_result = cv2.cvtColor(img_result, cv2.COLOR_BGR2RGB)
-        display_attention_and_result(img, attention_maps, img_result)
+        input_list = sorted(os.listdir(args.input_dir))
+        num = len(input_list)
+        for i in range(num):
+            print ('Processing image: %s'%(input_list[i]))
+            img = plt.imread(args.input_dir + input_list[i])
+            img = align_to_four(img)
+            #result = predict(img)
+            #img_name = input_list[i].split('.')[0]
+            #cv2.imwrite(args.output_dir + img_name + '.jpg', result)
+            attention_maps, result = predict_with_attention(img)
+            img_name = input_list[i].split('.')[0]
+            cv2.imwrite(args.output_dir + img_name + '.jpg', result)
+            img_result = plt.imread(args.output_dir + img_name + '.jpg')
+            img_result = cv2.cvtColor(img_result, cv2.COLOR_BGR2RGB)
+            display_attention_and_result(img, attention_maps, img_result)
 
     elif args.mode == 'test':
         for r in range(5):  # Run test mode 10 times
